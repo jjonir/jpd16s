@@ -1,6 +1,6 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <stdint.h>
+#include "core.h"
 
 // TODO make a more accurate hcf routine
 #define CATCH_FIRE() exit(1)
@@ -34,13 +34,8 @@ const uint16_t spc_inst_clocks[0x20] = {
 
 uint16_t clock = 0;
 
-struct {
-	uint16_t A, B, C;
-	uint16_t X, Y, Z;
-	uint16_t I, J;
-	uint16_t PC, SP, EX, IA;
-} registers;
-uint16_t *register_file = (uint16_t *)&registers;
+struct register_file registers;
+uint16_t *register_array = (uint16_t *)&registers;
 uint16_t memory[0x10000];
 
 #define MAX_INTERRUPTS 256
@@ -87,11 +82,11 @@ uint16_t next_word(void)
 uint16_t *decode_lvalue(uint16_t val)
 {
 	if (val < 0x08)
-        return &register_file[val];
+		return &register_array[val];
 	else if (val < 0x10)
-        return &memory[register_file[val]];
+		return &memory[register_array[val]];
 	else if (val < 0x18)
-        return &memory[register_file[val] + next_word()];
+		return &memory[register_array[val] + next_word()];
 	else
 		switch (val) {
 		case 0x18: return &memory[--registers.SP];
@@ -358,5 +353,26 @@ void ex(void)
 	default:
 		// TODO unspecified, catch fire or fail silently?
 		break;
+	}
+}
+
+void trigger_interrupt(uint16_t msg)
+{
+	if (registers.IA != 0) {
+		memory[--registers.SP] = registers.PC;
+		memory[--registers.SP] = registers.A;
+		registers.PC = registers.IA;
+		registers.A = msg;
+		interrupts_enabled = 0;
+	}
+}
+
+void run_dcpu16(void)
+{
+	while (1) {
+		ex();
+		if ((interrupts_enabled) && (last_unused_interrupt != next_interrupt)) {
+			trigger_interrupt(next_interrupt++);
+		}
 	}
 }
