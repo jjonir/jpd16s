@@ -14,6 +14,18 @@ int load_bin(const char *filename)
 {
 	FILE *f;
 
-	if ((f = fopen(filename, "r")) == NULL)
+	if ((f = fopen(filename, "rb")) == NULL) {
 		perror("fopen");
+		return -1;
+	}
+	if (fread((void *)memory, 2, 0x10000, f) == 0) {
+		fprintf(stderr, "core file unreadable or empty\n");
+		return -2;
+	}
+	if (!feof(f)) {
+		fprintf(stderr, "core file larger than the maximum 0x10000 words\n");
+		return -3;
+	}
+
+    return 0;
 }

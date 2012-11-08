@@ -54,6 +54,7 @@ static uint16_t *decode_lvalue(uint16_t val);
 static uint16_t decode_rvalue(uint16_t val);
 static void skip(void);
 static void queue_interrupt(uint16_t msg);
+static void trigger_interrupt(uint16_t msg);
 static void ex_spc(uint16_t inst);
 static void ex(void);
 
@@ -144,6 +145,17 @@ void queue_interrupt(uint16_t msg)
 		CATCH_FIRE(); // TODO
 	else
 		interrupts[last_unused_interrupt++] = msg;
+}
+
+void trigger_interrupt(uint16_t msg)
+{
+	if (registers.IA != 0) {
+		memory[--registers.SP] = registers.PC;
+		memory[--registers.SP] = registers.A;
+		registers.PC = registers.IA;
+		registers.A = msg;
+		interrupts_enabled = 0;
+	}
 }
 
 void ex_spc(uint16_t inst)
@@ -353,17 +365,6 @@ void ex(void)
 	default:
 		// TODO unspecified, catch fire or fail silently?
 		break;
-	}
-}
-
-void trigger_interrupt(uint16_t msg)
-{
-	if (registers.IA != 0) {
-		memory[--registers.SP] = registers.PC;
-		memory[--registers.SP] = registers.A;
-		registers.PC = registers.IA;
-		registers.A = msg;
-		interrupts_enabled = 0;
 	}
 }
 
