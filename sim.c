@@ -26,6 +26,7 @@ int load_bin(const char *filename)
 		fprintf(stderr, "core file larger than the maximum 0x10000 words\n");
 		return -3;
 	}
+	fclose(f);
 
-    return 0;
+	return 0;
 }
