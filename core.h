@@ -1,16 +1,20 @@
 #ifndef _CORE_H
 #define _CORE_H
 
-struct register_file{
+#include <stdint.h>
+
+struct register_file {
 	uint16_t A, B, C;
 	uint16_t X, Y, Z;
 	uint16_t I, J;
 	uint16_t PC, SP, EX, IA;
 };
 
+extern uint16_t clock;
 extern struct register_file registers;
 extern uint16_t memory[0x10000];
 
+uint16_t sim_step(void);
 void run_dcpu16(void);
 
 #endif

@@ -1,5 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra
+LDLIBS = -lncurses
 RM = rm -f
 OBJECTS = core.o sim.o
 

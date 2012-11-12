@@ -85,9 +85,9 @@ uint16_t *decode_lvalue(uint16_t val)
 	if (val < 0x08)
 		return &register_array[val];
 	else if (val < 0x10)
-		return &memory[register_array[val]];
+		return &memory[register_array[val - 0x08]];
 	else if (val < 0x18)
-		return &memory[register_array[val] + next_word()];
+		return &memory[register_array[val - 0x10] + next_word()];
 	else
 		switch (val) {
 		case 0x18: return &memory[--registers.SP];
@@ -368,12 +368,21 @@ void ex(void)
 	}
 }
 
+uint16_t sim_step(void)
+{
+	int clock_before = clock;
+
+	ex();
+	if ((interrupts_enabled) && (last_unused_interrupt != next_interrupt)) {
+		trigger_interrupt(next_interrupt++);
+	}
+
+	return clock - clock_before;
+}
+
 void run_dcpu16(void)
 {
 	while (1) {
-		ex();
-		if ((interrupts_enabled) && (last_unused_interrupt != next_interrupt)) {
-			trigger_interrupt(next_interrupt++);
-		}
+		sim_step();
 	}
 }
