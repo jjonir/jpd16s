@@ -2,7 +2,8 @@ CC = gcc
 CFLAGS = -Wall -Wextra
 LDLIBS = -lncurses
 RM = rm -f
-OBJECTS = core.o sim.o
+# TODO don't do that ../foo thing
+OBJECTS = core.o sim.o ../jpd16a/disasm.o
 
 .PHONY: all clean
 

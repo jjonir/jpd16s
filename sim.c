@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ncurses.h>
 #include "core.h"
+#include "../jpd16a/disasm.h" // TODO don't do this
 
 static void dump_state(void);
 static int load_bin(const char *filename);
@@ -30,6 +31,7 @@ int main(int argc, char *argv[])
 		initscr();
 		while (1) {
 			dump_state();
+			sleep(1);
 			sim_step();
 		}
 		endwin();
@@ -40,32 +42,72 @@ int main(int argc, char *argv[])
 
 void dump_state(void)
 {
-	int i;
+	int i, inst_len;
+	uint16_t addr;
+	static uint16_t past_addr[5] = {0, 0, 0, 0, 0};
+	int prev_insts;
+	char buf[32];
 
-	mvprintw(0,  0, "|Clock Ticks: 0x%.4x", clock);
+	mvprintw(0,  0, "Clock: 0x%.4x", clock);
 
-	mvprintw(1,  0, "+----------+");
-	mvprintw(2,  0, "|A:  0x%.4x|", registers.A);
-	mvprintw(3,  0, "|B:  0x%.4x|", registers.B);
-	mvprintw(4,  0, "|C:  0x%.4x|", registers.C);
-	mvprintw(5,  0, "|X:  0x%.4x|", registers.X);
-	mvprintw(6,  0, "|Y:  0x%.4x|", registers.Y);
-	mvprintw(7,  0, "|Z:  0x%.4x|", registers.Z);
-	mvprintw(8,  0, "|I:  0x%.4x|", registers.I);
-	mvprintw(9,  0, "|J:  0x%.4x|", registers.J);
-	mvprintw(10, 0, "|PC: 0x%.4x|", registers.PC);
-	mvprintw(11, 0, "|SP: 0x%.4x|", registers.SP);
-	mvprintw(12, 0, "|EX: 0x%.4x|", registers.EX);
-	mvprintw(13, 0, "|IA: 0x%.4x|", registers.IA);
-	mvprintw(14, 0, "+-----------");
+	mvprintw(1,  0, "+------------+");
+	mvprintw(2,  0, "| A:  0x%.4x |", registers.A);
+	mvprintw(3,  0, "| B:  0x%.4x |", registers.B);
+	mvprintw(4,  0, "| C:  0x%.4x |", registers.C);
+	mvprintw(5,  0, "| X:  0x%.4x |", registers.X);
+	mvprintw(6,  0, "| Y:  0x%.4x |", registers.Y);
+	mvprintw(7,  0, "| Z:  0x%.4x |", registers.Z);
+	mvprintw(8,  0, "| I:  0x%.4x |", registers.I);
+	mvprintw(9,  0, "| J:  0x%.4x |", registers.J);
+	mvprintw(10, 0, "| PC: 0x%.4x |", registers.PC);
+	mvprintw(11, 0, "| SP: 0x%.4x |", registers.SP);
+	mvprintw(12, 0, "| EX: 0x%.4x |", registers.EX);
+	mvprintw(13, 0, "| IA: 0x%.4x |", registers.IA);
+	mvprintw(14, 0, "+------------+");
 
-	for (i = 0; i < 30; i++)
-		mvprintw(15 + i, 0,
+	mvprintw(1, 16, "+---------------------------+");
+	prev_insts = 0;
+	for (i = 0; i < 4; i++)
+		past_addr[i] = past_addr[i + 1];
+	past_addr[4] = registers.PC;
+	for (i = 3; i >= 0; i--) {
+		addr = past_addr[i];
+		inst_len = decode_inst(&memory[addr], buf);
+		if ((inst_len + addr) == past_addr[i + 1])
+			prev_insts++;
+	}
+	for (i = 0; i < prev_insts; i++) {
+		addr = past_addr[i + (4 - prev_insts)];
+		inst_len = decode_inst(&memory[addr], buf);
+		mvprintw(i + 2, 16, "|                           |");
+		mvprintw(i + 2, 16, "| %.4x %s", addr, buf);
+	}
+	for (addr = registers.PC; i < 12; i++, addr += inst_len) {
+		inst_len = decode_inst(&memory[addr], buf);
+		mvprintw(i + 2, 16, "|                           |");
+		if (addr == registers.PC)
+			attron(A_BOLD);
+		mvprintw(i + 2, 18,   "%.4x %s", addr, buf);
+		if (addr == registers.PC)
+			attroff(A_BOLD);
+	}
+	mvprintw(14,16, "+---------------------------+");
+
+	for (i = 0; i < 0x10; i++)
+		mvprintw(16 + i, 0,
 				"%.4x: %.4x %.4x %.4x %.4x %.4x %.4x %.4x %.4x",
 				i * 8, memory[i * 8], memory[i * 8 + 1],
 				memory[i * 8 + 2], memory[i * 8 + 3],
 				memory[i * 8 + 4], memory[i * 8 + 5],
 				memory[i * 8 + 6], memory[i * 8 + 7]);
+
+	attron(A_BOLD);
+	inst_len = decode_inst(&memory[registers.PC], buf);
+	for (i = 0; i < inst_len; i++) {
+		addr = registers.PC + i;
+		mvprintw(16 + (addr / 8), 6 + 5 * (addr % 8), "%.4x", memory[addr]);
+	}
+	attroff(A_BOLD);
 
 	refresh();
 }
