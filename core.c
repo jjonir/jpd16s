@@ -374,7 +374,7 @@ uint16_t sim_step(void)
 
 	ex();
 	if ((interrupts_enabled) && (last_unused_interrupt != next_interrupt)) {
-		trigger_interrupt(next_interrupt++);
+		trigger_interrupt(interrupts[next_interrupt++]);
 	}
 
 	return clock - clock_before;

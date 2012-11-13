@@ -3,8 +3,10 @@ jpd16s
 
 Execution
 ---------
-Autoloads the file 'core.bin' and immediately starts execution.
-Does not produce any output.
+Autoloads the file 'core.bin' or the filename given as an argument and
+immediately starts execution.
+Does not produce any output by default. If the -d or --debug argument is given,
+there is a curses-based debug display.
 
 Implementation Progress
 -----------------------
