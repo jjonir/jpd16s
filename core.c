@@ -298,11 +298,11 @@ void ex(void)
 		break;
 	case SHR:
 		registers.EX = (((uint32_t)*lvalue << 16) >> rvalue) & 0xFFFF;
-		*lvalue >>= rvalue; // TODO is SHR vs ASR just uint vs int?
+		*lvalue >>= rvalue;
 		break;
 	case ASR:
 		registers.EX = (((uint32_t)*lvalue << 16) >> rvalue) & 0xFFFF;
-		*(int16_t *)lvalue >>= rvalue; // TODO is SHR vs ASR just uint vs int?
+		*(int16_t *)lvalue >>= rvalue;
 		break;
 	case SHL:
 		registers.EX = (((uint32_t)*lvalue << rvalue) >> 16) & 0xFFFF;
