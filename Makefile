@@ -3,7 +3,7 @@ CFLAGS = -Wall -Wextra
 LDLIBS = -lncurses
 RM = rm -f
 # TODO don't do that ../foo thing
-OBJECTS = core.o sim.o ../jpd16a/disasm.o
+OBJECTS = core.o sim.o lem1802.o ../jpd16a/disasm.o
 
 .PHONY: all clean
 
