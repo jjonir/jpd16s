@@ -26,6 +26,7 @@ int main(int argc, char *argv[])
 	if (load_bin(corefilename) != 0)
 		exit(1);
 
+	sim_init();
 	if (dbg == 0) {
 		run_dcpu16();
 	} else {
@@ -66,7 +67,7 @@ void dump_state(void)
 
 	dump_disassembly();
 
-	for (i = 0; i < 0x10; i++)
+	for (i = 0; i < 0x08; i++)
 		mvprintw(16 + i, 0,
 				"%.4x: %.4x %.4x %.4x %.4x %.4x %.4x %.4x %.4x",
 				i * 8, memory[i * 8], memory[i * 8 + 1],
@@ -91,6 +92,7 @@ void dump_disassembly(void)
 	int i, pc_index, inst_len, offset;
 	uint16_t addr;
 	char buf[32];
+	int disasm_x = 15;
 
 	pc_index = 0;
 	for (i = 0; i < 12; i++) {
@@ -103,24 +105,24 @@ void dump_disassembly(void)
 	if (pc_index > 5)
 		offset = pc_index - 5;
 
-	mvprintw(1, 16, "+---------------------------+");
+	mvprintw(1, disasm_x, "+---------------------------+");
 	for (i = 0; (i + offset) < pc_index; i++) {
 		decode_inst(&memory[addr_buf[i + offset]], buf);
-		mvprintw(i + 2, 16, "|                           |");
-		mvprintw(i + 2, 16, "| %.4x %s", addr_buf[i + offset], buf);
+		mvprintw(i + 2, disasm_x, "|                           |");
+		mvprintw(i + 2, disasm_x, "| %.4x %s", addr_buf[i + offset], buf);
 		addr_buf[i] = addr_buf[i + offset];
 	}
 	for (addr = registers.PC; i < 12; i++, addr += inst_len) {
 		inst_len = decode_inst(&memory[addr], buf);
-		mvprintw(i + 2, 16, "|                           |");
+		mvprintw(i + 2, disasm_x, "|                           |");
 		if (addr == registers.PC)
 			attron(A_BOLD);
-		mvprintw(i + 2, 18,   "%.4x %s", addr, buf);
+		mvprintw(i + 2, disasm_x + 2,   "%.4x %s", addr, buf);
 		if (addr == registers.PC)
 			attroff(A_BOLD);
 		addr_buf[i] = addr;
 	}
-	mvprintw(14,16, "+---------------------------+");
+	mvprintw(14, disasm_x, "+---------------------------+");
 }
 
 int load_bin(const char *filename)

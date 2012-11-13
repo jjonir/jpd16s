@@ -8,8 +8,8 @@
 #define VRAM_ROWS 12
 #define VRAM_COLS 32
 
-#define VRAM_TOP 5
-#define VRAM_LEFT 90
+#define VRAM_TOP 2
+#define VRAM_LEFT 46
 #define FONT_LEN 256
 #define PAL_LEN 16
 
@@ -97,22 +97,23 @@ uint16_t lem_interrupt(void)
 void lem_step(void)
 {
 	uint16_t row, col, index;
-	char row_buf[33];
+	char row_buf[33] = "                                ";
 
 	mvprintw(VRAM_TOP - 1, VRAM_LEFT - 1, "+--------------------------------+");
 
-	if (!connected)
-		return;
 	if (custom_font)
 		return; // TODO something else
 	for (row = 0; row < VRAM_ROWS; row++) {
-		for (col = 0; col < VRAM_COLS; col++) {
-			index = row * VRAM_COLS + col;
-			row_buf[col] = (char)memory[vram + index];
+		if (connected){
+			for (col = 0; col < VRAM_COLS; col++) {
+				index = row * VRAM_COLS + col;
+				row_buf[col] = (char)memory[vram + index];
+			}
+			row_buf[col] = 0;
 		}
-		row_buf[col] = 0;
 		mvprintw(VRAM_TOP + row, VRAM_LEFT - 1, "|%s|", row_buf);
 	}
 
 	mvprintw(VRAM_TOP + 12, VRAM_LEFT - 1, "+--------------------------------+");
+	refresh();
 }

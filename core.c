@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "core.h"
+#include "hardware.h"
+#include "lem1802.h"
 
 // TODO make a more accurate hcf routine
 #define CATCH_FIRE() exit(1)
@@ -44,7 +46,7 @@ uint8_t next_interrupt = 0;
 uint8_t last_unused_interrupt = 0;
 uint8_t interrupts_enabled = 1;
 
-uint16_t hardware[0x10000];
+struct hardware *hardware[0x10000];
 
 
 static void clock_tick(uint16_t cycles);
@@ -232,11 +234,11 @@ void ex(void)
 		ex_spc(inst);
 		return;
 	}
+	clock_tick(inst_clocks[op] - 1);
 
 	rvalue = decode_rvalue((inst >> 10) & 0x3F);
 	lvalue = decode_lvalue((inst >> 5) & 0x1F);
 
-	clock_tick(inst_clocks[op]);
 	switch (op) {
 	case SET:
 		*lvalue = rvalue;
@@ -368,6 +370,11 @@ void ex(void)
 	}
 }
 
+void sim_init(void)
+{
+	hardware[0] = lem1802();
+}
+
 uint16_t sim_step(void)
 {
 	int clock_before = clock;
@@ -376,6 +383,7 @@ uint16_t sim_step(void)
 	if ((interrupts_enabled) && (last_unused_interrupt != next_interrupt)) {
 		trigger_interrupt(interrupts[next_interrupt++]);
 	}
+	hardware[0]->step(); // TODO step all connected devices
 
 	return clock - clock_before;
 }
