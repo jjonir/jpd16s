@@ -9,7 +9,7 @@ struct hardware {
 	uint16_t mfg[2];
 
 	void (*init)(void);
-	uint16_t (*interrupt)(void);
+	int (*interrupt)(void);
 	void (*step)(void);
 };
 

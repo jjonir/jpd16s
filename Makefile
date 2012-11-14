@@ -2,8 +2,9 @@ CC = gcc
 CFLAGS = -Wall -Wextra
 LDLIBS = -lncurses
 RM = rm -f
+HARDWARE_OBJ = lem1802.o generic_clock.o
 # TODO don't do that ../foo thing
-OBJECTS = core.o sim.o lem1802.o ../jpd16a/disasm.o
+OBJECTS = core.o interrupts.o sim.o ../jpd16a/disasm.o $(HARDWARE_OBJ)
 
 .PHONY: all clean
 

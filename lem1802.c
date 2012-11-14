@@ -1,8 +1,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <curses.h>
-#include "hardware.h"
 #include "core.h"
+#include "hardware.h"
 
 #define VRAM_LEN 384
 #define VRAM_ROWS 12
@@ -25,7 +25,7 @@ static uint16_t pal_ram;
 static uint16_t border_col;
 
 static void lem_init(void);
-static uint16_t lem_interrupt(void);
+static int lem_interrupt(void);
 static void lem_step(void);
 
 struct hardware lem = {
@@ -48,7 +48,7 @@ void lem_init(void)
 {
 }
 
-uint16_t lem_interrupt(void)
+int lem_interrupt(void)
 {
 	uint16_t cycles = 0;
 

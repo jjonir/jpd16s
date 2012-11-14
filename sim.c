@@ -5,6 +5,7 @@
 #include "core.h"
 #include "hardware.h"
 #include "lem1802.h"
+#include "generic_clock.h"
 #include "../jpd16a/disasm.h" // TODO don't do this
 
 static void dump_state(void);
@@ -33,6 +34,7 @@ int main(int argc, char *argv[])
 		hardware[0] = lem1802(1, 1);
 	else
 		hardware[0] = lem1802(2, 46);
+	hardware[1] = generic_clock();
 
 	initscr();
 	if (dbg == 0) {
@@ -55,7 +57,7 @@ void dump_state(void)
 	uint16_t addr;
 	char buf[32];
 
-	mvprintw(0,  0, "Clock: 0x%.4x", clock);
+	mvprintw(0,  0, "Clock: 0x%.4x", clock_time);
 
 	mvprintw(1,  0, "+------------+");
 	mvprintw(2,  0, "| A:  0x%.4x |", registers.A);

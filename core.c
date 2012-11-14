@@ -2,9 +2,7 @@
 #include <stdint.h>
 #include "core.h"
 #include "hardware.h"
-
-// TODO make a more accurate hcf routine
-#define CATCH_FIRE() exit(1)
+#include "interrupts.h"
 
 enum {
 	SPC = 0x00,
@@ -33,17 +31,11 @@ const uint16_t spc_inst_clocks[0x20] = {
 	2, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-uint16_t clock = 0;
+uint16_t clock_time = 0;
 
 struct register_file registers;
 uint16_t *register_array = (uint16_t *)&registers;
 uint16_t memory[0x10000];
-
-#define MAX_INTERRUPTS 256
-uint16_t interrupts[MAX_INTERRUPTS];
-uint8_t next_interrupt = 0;
-uint8_t last_unused_interrupt = 0;
-uint8_t interrupts_enabled = 1;
 
 struct hardware *hardware[0x10000];
 
@@ -54,8 +46,6 @@ static uint16_t next_word(void);
 static uint16_t *decode_lvalue(uint16_t val);
 static uint16_t decode_rvalue(uint16_t val);
 static void skip(void);
-static void queue_interrupt(uint16_t msg);
-static void trigger_interrupt(uint16_t msg);
 static void ex_spc(uint16_t inst);
 static void ex(void);
 
@@ -63,7 +53,7 @@ static void ex(void);
 void clock_tick(uint16_t cycles)
 {
 	// TODO something else
-	clock += cycles;
+	clock_time += cycles;
 }
 
 uint16_t *next_word_addr(void)
@@ -138,25 +128,6 @@ void skip(void)
 				(val_b == 0x1A) || (val_b == 0x1E) || (val_b == 0x1F))
 			registers.PC++; // TODO spec suggests that this doesn't take a tick
 	} while ((inst >= 0x10) && (inst <= 0x17));
-}
-
-void queue_interrupt(uint16_t msg)
-{
-	if ((last_unused_interrupt + 1) == next_interrupt)
-		CATCH_FIRE(); // TODO
-	else
-		interrupts[last_unused_interrupt++] = msg;
-}
-
-void trigger_interrupt(uint16_t msg)
-{
-	if (registers.IA != 0) {
-		memory[--registers.SP] = registers.PC;
-		memory[--registers.SP] = registers.A;
-		registers.PC = registers.IA;
-		registers.A = msg;
-		interrupts_enabled = 0;
-	}
 }
 
 void ex_spc(uint16_t inst)
@@ -376,15 +347,16 @@ void sim_init(void)
 
 uint16_t sim_step(void)
 {
-	int clock_before = clock;
+	int clock_before = clock_time;
 
 	ex();
-	if ((interrupts_enabled) && (last_unused_interrupt != next_interrupt)) {
-		trigger_interrupt(interrupts[next_interrupt++]);
-	}
-	hardware[0]->step(); // TODO step all connected devices
+	if (interrupts_enabled)
+		trigger_next_queued_interrupt();
+	// TODO step all connected devices
+	hardware[0]->step(); // hardwired LEM1802
+	hardware[1]->step(); // hardwired generic clock
 
-	return clock - clock_before;
+	return clock_time - clock_before;
 }
 
 void run_dcpu16(void)
@@ -392,4 +364,10 @@ void run_dcpu16(void)
 	while (1) {
 		sim_step();
 	}
+}
+
+// TODO make a more accurate hcf routine
+void CATCH_FIRE(void)
+{
+	exit(1);
 }
