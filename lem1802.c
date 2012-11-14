@@ -8,10 +8,11 @@
 #define VRAM_ROWS 12
 #define VRAM_COLS 32
 
-#define VRAM_TOP 2
-#define VRAM_LEFT 46
 #define FONT_LEN 256
 #define PAL_LEN 16
+
+static int vram_top = 2;
+static int vram_left = 46;
 
 static int connected = 0;
 static uint16_t vram;
@@ -36,8 +37,10 @@ struct hardware lem = {
 	&lem_step
 };
 
-struct hardware *lem1802(void)
+struct hardware *lem1802(int top, int left)
 {
+	vram_top = top;
+	vram_left = left;
 	return &lem;
 }
 
@@ -99,7 +102,7 @@ void lem_step(void)
 	uint16_t row, col, index;
 	char row_buf[33] = "                                ";
 
-	mvprintw(VRAM_TOP - 1, VRAM_LEFT - 1, "+--------------------------------+");
+	mvprintw(vram_top - 1, vram_left - 1, "+--------------------------------+");
 
 	if (custom_font)
 		return; // TODO something else
@@ -108,12 +111,14 @@ void lem_step(void)
 			for (col = 0; col < VRAM_COLS; col++) {
 				index = row * VRAM_COLS + col;
 				row_buf[col] = (char)memory[vram + index];
+				if (row_buf[col] == 0)
+					row_buf[col] = ' ';
 			}
 			row_buf[col] = 0;
 		}
-		mvprintw(VRAM_TOP + row, VRAM_LEFT - 1, "|%s|", row_buf);
+		mvprintw(vram_top + row, vram_left - 1, "|%s|", row_buf);
 	}
 
-	mvprintw(VRAM_TOP + 12, VRAM_LEFT - 1, "+--------------------------------+");
+	mvprintw(vram_top + 12, vram_left - 1, "+--------------------------------+");
 	refresh();
 }

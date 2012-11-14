@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include "core.h"
 #include "hardware.h"
-#include "lem1802.h"
 
 // TODO make a more accurate hcf routine
 #define CATCH_FIRE() exit(1)
@@ -215,7 +214,8 @@ void ex_spc(uint16_t inst)
 		// TODO get info about hardware at location rvalue
 		break;
 	case HWI:
-		// TODO send an interrupt to hardware at location rvalue
+		// TODO block for some time, using the return value of interrupt()
+		hardware[rvalue]->interrupt();
 		break;
 	default:
 		// TODO unspecified, catch fire or fail silently?
@@ -372,7 +372,6 @@ void ex(void)
 
 void sim_init(void)
 {
-	hardware[0] = lem1802();
 }
 
 uint16_t sim_step(void)

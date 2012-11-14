@@ -13,4 +13,6 @@ struct hardware {
 	void (*step)(void);
 };
 
+extern struct hardware *hardware[0x10000];
+
 #endif

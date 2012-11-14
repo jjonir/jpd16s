@@ -3,6 +3,8 @@
 #include <string.h>
 #include <ncurses.h>
 #include "core.h"
+#include "hardware.h"
+#include "lem1802.h"
 #include "../jpd16a/disasm.h" // TODO don't do this
 
 static void dump_state(void);
@@ -27,17 +29,22 @@ int main(int argc, char *argv[])
 		exit(1);
 
 	sim_init();
+	if (dbg == 0)
+		hardware[0] = lem1802(1, 1);
+	else
+		hardware[0] = lem1802(2, 46);
+
+	initscr();
 	if (dbg == 0) {
 		run_dcpu16();
 	} else {
-		initscr();
 		while (1) {
 			dump_state();
 			sleep(1);
 			sim_step();
 		}
-		endwin();
 	}
+	endwin();
 
 	return 0;
 }
