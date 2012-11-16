@@ -1,7 +1,6 @@
 #include <string.h>
 #include <stdint.h>
 #include <curses.h>
-#include "core.h"
 #include "hardware.h"
 
 #define VRAM_LEN 384
@@ -51,45 +50,47 @@ void lem_init(void)
 int lem_interrupt(void)
 {
 	uint16_t cycles = 0;
+	uint16_t b = read_register(REG_B);
 
-	switch (registers.A) {
+	switch (read_register(REG_A)) {
 	case 0:
-		if (registers.B) {
+		if (b) {
 			if (connected == 0) {
 				// TODO don't start up for ~1s
 			}
 			connected = 1;
-			vram = registers.B;
+			vram = b;
 		} else {
 			connected = 0;
 		}
 		break;
 	case 1:
-		if (registers.B) {
+		if (b) {
 			custom_font = 1;
-			font_ram = registers.B;
+			font_ram = b;
 		} else {
 			custom_font = 1;
 		}
 		break;
 	case 2:
-		if (registers.B) {
+		if (b) {
 			custom_pal = 1;
-			pal_ram = registers.B;
+			pal_ram = b;
 		} else {
 			custom_pal = 1;
 		}
 		break;
 	case 3:
-		border_col = registers.B;
+		border_col = b;
 		break;
 	case 4:
-		memcpy(&memory[registers.B], font, FONT_LEN);
+		write_memory(b, FONT_LEN, font);
 		cycles = 256;
 		break;
 	case 5:
-		memcpy(&memory[registers.B], pal, PAL_LEN);
+		write_memory(b, PAL_LEN, pal);
 		cycles = 16;
+		break;
 	default:
 		break;
 	}
@@ -101,6 +102,9 @@ void lem_step(void)
 {
 	uint16_t row, col, index;
 	char row_buf[33] = "                                ";
+	uint16_t vram_buf[384];
+
+	read_memory(vram, VRAM_LEN, vram_buf);
 
 	mvprintw(vram_top - 1, vram_left - 1, "+--------------------------------+");
 
@@ -110,7 +114,7 @@ void lem_step(void)
 		if (connected){
 			for (col = 0; col < VRAM_COLS; col++) {
 				index = row * VRAM_COLS + col;
-				row_buf[col] = (char)memory[vram + index];
+				row_buf[col] = (char)vram_buf[index];
 				if (row_buf[col] == 0)
 					row_buf[col] = ' ';
 			}
