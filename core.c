@@ -127,7 +127,7 @@ void skip(void)
 		if (((val_b >= 0x10) && (val_b <= 0x17)) ||
 				(val_b == 0x1A) || (val_b == 0x1E) || (val_b == 0x1F))
 			registers.PC++; // TODO spec suggests that this doesn't take a tick
-	} while ((inst >= 0x10) && (inst <= 0x17));
+	} while ((op >= 0x10) && (op <= 0x17));
 }
 
 void ex_spc(uint16_t inst)
