@@ -3,6 +3,6 @@
 
 #include "hardware.h"
 
-struct hardware *generic_clock(void);
+struct hw_builtin *generic_clock(void);
 
 #endif

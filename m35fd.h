@@ -20,6 +20,6 @@ enum m35fd_error {
 	ERROR_BROKEN
 };
 
-struct hardware *m35fd(uint16_t *buf);
+struct hw_builtin *m35fd(uint16_t *buf);
 
 #endif

@@ -1,7 +1,9 @@
+#include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <curses.h>
 #include "hardware.h"
+#include "hardware_host.h"
 
 #define VRAM_LEN 384
 #define VRAM_ROWS 12
@@ -27,21 +29,33 @@ static void lem_init(void);
 static int lem_interrupt(void);
 static void lem_step(void);
 
-struct hardware lem = {
-	{0x7349, 0xf615},
+struct hw_builtin lem_builtin = {
+	0x7349f615,
 	0x1802,
-	{0x1c6c, 0x8b36},
+	0x1c6c8b36,
 	&lem_init,
 	&lem_interrupt,
 	&lem_step
 };
 
-struct hardware *lem1802(int top, int left)
+struct hw_builtin *lem1802(int top, int left)
 {
+	struct hw_builtin *lem;
+
 	vram_top = top;
 	vram_left = left;
-	return &lem;
+
+	lem = (struct hw_builtin *)malloc(sizeof(struct hw_builtin));
+	*lem = lem_builtin;
+	return lem;
 }
+
+#ifdef BUILD_MODULE
+struct hw_builtin *get_hw(void)
+{
+	return lem1802(1, 1);
+}
+#endif
 
 void lem_init(void)
 {
@@ -104,14 +118,14 @@ void lem_step(void)
 	char row_buf[33] = "                                ";
 	uint16_t vram_buf[384];
 
-	read_memory(vram, VRAM_LEN, vram_buf);
-
 	mvprintw(vram_top - 1, vram_left - 1, "+--------------------------------+");
 
-	if (custom_font)
-		return; // TODO something else
-	for (row = 0; row < VRAM_ROWS; row++) {
-		if (connected){
+	if (connected) {
+		read_memory(vram, VRAM_LEN, vram_buf);
+
+		if (custom_font)
+			return; // TODO something else
+		for (row = 0; row < VRAM_ROWS; row++) {
 			for (col = 0; col < VRAM_COLS; col++) {
 				index = row * VRAM_COLS + col;
 				row_buf[col] = (char)vram_buf[index];
@@ -119,8 +133,12 @@ void lem_step(void)
 					row_buf[col] = ' ';
 			}
 			row_buf[col] = 0;
+			mvprintw(vram_top + row, vram_left - 1, "|%s|", row_buf);
 		}
-		mvprintw(vram_top + row, vram_left - 1, "|%s|", row_buf);
+	} else {
+		for (row = 0; row < VRAM_ROWS; row++) {
+			mvprintw(vram_top + row, vram_left - 1, "|%s|", row_buf);
+		}
 	}
 
 	mvprintw(vram_top + 12, vram_left - 1, "+--------------------------------+");

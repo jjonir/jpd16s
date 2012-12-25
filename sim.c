@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <ncurses.h>
 #include "core.h"
-#include "hardware.h"
+#include "hardware_host.h"
 #include "lem1802.h"
 #include "generic_clock.h"
 #include "../jpd16a/disasm.h" // TODO don't do this
@@ -30,11 +31,9 @@ int main(int argc, char *argv[])
 		exit(1);
 
 	sim_init();
-	if (dbg == 0)
-		hardware[0] = lem1802(1, 1);
-	else
-		hardware[0] = lem1802(2, 46);
-	hardware[1] = generic_clock();
+	attach_hardware_builtin();
+	attach_hardware_module("./lem1802");
+	attach_hardware_module("./generic_clock");
 
 	initscr();
 	if (dbg == 0) {
@@ -42,7 +41,7 @@ int main(int argc, char *argv[])
 	} else {
 		while (1) {
 			dump_state();
-			sleep(1);
+			usleep(100000);
 			sim_step();
 		}
 	}
@@ -76,7 +75,7 @@ void dump_state(void)
 
 	dump_disassembly();
 
-	for (i = 0; i < 0x08; i++)
+	for (i = 0; i < 10; i++)
 		mvprintw(16 + i, 0,
 				"%.4x: %.4x %.4x %.4x %.4x %.4x %.4x %.4x %.4x",
 				i * 8, memory[i * 8], memory[i * 8 + 1],
@@ -95,11 +94,11 @@ void dump_state(void)
 	refresh();
 }
 
-uint16_t addr_buf[12];
 void dump_disassembly(void)
 {
 	int i, pc_index, inst_len, offset;
 	uint16_t addr;
+	static uint16_t addr_buf[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
 	char buf[32];
 	int disasm_x = 15;
 

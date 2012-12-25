@@ -1,31 +1,44 @@
+#include <stdlib.h>
 #include <time.h>
 #include "core.h"
 #include "hardware.h"
+#include "hardware_host.h"
 
 static int clk_scale = 1;
 static int clk_enabled = 0;
 static int int_enabled = 0;
 static int int_msg;
-static clock_t t0;
+static struct timespec t0;
 static int ticks = 0;
 
 static void clk_init(void);
 static int clk_interrupt(void);
 static void clk_step(void);
 
-struct hardware clk = {
-	{0x12d0, 0xb402},
+struct hw_builtin clk_builtin = {
+	0x12d0b402,
 	0x0001,
-	{0x0000, 0x0000},
+	0x00000000,
 	&clk_init,
 	&clk_interrupt,
 	&clk_step
 };
 
-struct hardware *generic_clock(void)
+struct hw_builtin *generic_clock(void)
 {
-	return &clk;
+	struct hw_builtin *clk;
+
+	clk = (struct hw_builtin *)malloc(sizeof(struct hw_builtin));
+	*clk = clk_builtin;
+	return clk;
 }
+
+#ifdef BUILD_MODULE
+struct hw_builtin *get_hw(void)
+{
+	return generic_clock();
+}
+#endif
 
 void clk_init(void)
 {
@@ -39,7 +52,7 @@ int clk_interrupt(void)
 	case 0:
 		if (b) {
 			clk_enabled = 1;
-			t0 = clock();
+			clock_gettime(CLOCK_REALTIME, &t0);
 			clk_scale = b;
 		} else {
 			clk_enabled = 0;
@@ -63,10 +76,21 @@ int clk_interrupt(void)
 	return 0;
 }
 
+int foo = 0;
 void clk_step(void)
 {
+	struct timespec tp;
+	uint64_t ns;
 	int old_ticks = ticks;
-	ticks = (clock() - t0) * 60 / CLOCKS_PER_SEC / clk_scale;
-	if (old_ticks != ticks) // TODO if more than one tick passed, trigger more than once? or maybe that should be impossible, since the nominal clock rate is 100 MHz and it would only be a problem on massively scaled down debug mode.
-		raise_interrupt(int_msg);
+
+	if (clk_enabled) {
+		clock_gettime(CLOCK_REALTIME, &tp);
+		ns = (tp.tv_sec - t0.tv_sec) * 1000000000;
+		ns += (tp.tv_nsec - t0.tv_nsec);
+		ticks = ns * 60 / 1000000000 / clk_scale;
+
+		if (int_enabled && (old_ticks != ticks))
+		// TODO if more than one tick passed, trigger more than once? or maybe that should be impossible, since the nominal clock rate is 100 kHz and it would only be a problem on massively scaled down debug mode.
+			raise_interrupt(int_msg);
+	}
 }

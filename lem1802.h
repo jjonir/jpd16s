@@ -3,6 +3,6 @@
 
 #include "hardware.h"
 
-struct hardware *lem1802(int top, int left);
+struct hw_builtin *lem1802(int top, int left);
 
 #endif

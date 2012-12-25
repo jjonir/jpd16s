@@ -18,18 +18,6 @@ enum regnum {
 	REG_IA = 11
 };
 
-struct hardware {
-	uint16_t id[2];
-	uint16_t version;
-	uint16_t mfg[2];
-
-	void (*init)(void);
-	int (*interrupt)(void);
-	void (*step)(void);
-};
-
-extern struct hardware *hardware[0x10000];
-
 uint16_t read_register(uint16_t reg);
 void read_memory(uint16_t addr, uint16_t len, uint16_t *buf);
 void write_register(uint16_t reg, uint16_t val);

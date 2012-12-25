@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "core.h"
-#include "hardware.h"
+#include "hardware_host.h"
 #include "interrupts.h"
 
 enum {
@@ -36,8 +36,6 @@ uint16_t clock_time = 0;
 struct register_file registers;
 uint16_t *register_array = (uint16_t *)&registers;
 uint16_t memory[0x10000];
-
-struct hardware *hardware[0x10000];
 
 
 static void clock_tick(uint16_t cycles);
@@ -179,14 +177,14 @@ void ex_spc(uint16_t inst)
 		break;
 	case HWN:
 		if (lvalue != NULL) // TODO spec says writing to literals fails silently, I don't like it
-			// TODO enumerate hardware into *lvalue
+			*lvalue = hardware_get_attached();
 		break;
 	case HWQ:
-		// TODO get info about hardware at location rvalue
+		hardware_hwq(rvalue);
 		break;
 	case HWI:
 		// TODO block for some time, using the return value of interrupt()
-		hardware[rvalue]->interrupt();
+		hardware_hwi(rvalue);
 		break;
 	default:
 		// TODO unspecified, catch fire or fail silently?
@@ -352,9 +350,7 @@ uint16_t sim_step(void)
 	ex();
 	if (interrupts_enabled)
 		trigger_next_queued_interrupt();
-	// TODO step all connected devices
-	hardware[0]->step(); // hardwired LEM1802
-	hardware[1]->step(); // hardwired generic clock
+	hardware_step_all();
 
 	return clock_time - clock_before;
 }

@@ -1,6 +1,8 @@
+#include <stdlib.h>
 #include <stdint.h>
 #include <time.h>
 #include "hardware.h"
+#include "hardware_host.h"
 #include "m35fd.h"
 
 #define SECTOR_LEN 512
@@ -32,20 +34,32 @@ static void fd_step(void);
 static int start_read(uint16_t read_sector, uint16_t addr);
 static int start_write(uint16_t write_sector, uint16_t addr);
 
-struct hardware fd = {
-	{0x4fd5, 0x24c5},
+struct hw_builtin fd_builtin = {
+	0x4fd524c5,
 	0x000b,
-	{0x1eb3, 0x7e91},
+	0x1eb37e91,
 	&fd_init,
 	&fd_interrupt,
 	&fd_step
 };
 
-struct hardware *m35fd(uint16_t *buf)
+struct hw_builtin *m35fd(uint16_t *buf)
 {
+	struct hw_builtin *fd;
+
 	disk = buf;
-	return &fd;
+
+	fd = (struct hw_builtin *)malloc(sizeof(struct hw_builtin));
+	*fd = fd_builtin;
+	return fd;
 }
+
+#ifdef BUILD_MODULE
+struct hw_builtin *get_hw(void)
+{
+	return m35fd(NULL);
+}
+#endif
 
 void fd_init(void)
 {
