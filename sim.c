@@ -9,6 +9,7 @@
 #include "generic_clock.h"
 #include "../jpd16a/disasm.h" // TODO don't do this
 
+static void deinit(void);
 static void dump_state(void);
 static void dump_disassembly(void);
 static int load_bin(const char *filename);
@@ -32,22 +33,32 @@ int main(int argc, char *argv[])
 
 	sim_init();
 	attach_hardware_builtin();
-	attach_hardware_module("./lem1802");
-	attach_hardware_module("./generic_clock");
+	//attach_hardware_module("./lem1802");
+	//attach_hardware_module("./generic_clock");
 
 	initscr();
+	atexit(deinit);
 	if (dbg == 0) {
 		run_dcpu16();
+		//while (1) {
+			//mvprintw(1,  100, "Clock: 0x%.4x", clock_time);
+			//sim_step();
+		//}
 	} else {
 		while (1) {
 			dump_state();
-			usleep(100000);
+			usleep(100);
 			sim_step();
 		}
 	}
 	endwin();
 
 	return 0;
+}
+
+void deinit(void)
+{
+	endwin();
 }
 
 void dump_state(void)
@@ -74,6 +85,15 @@ void dump_state(void)
 	mvprintw(14, 0, "+------------+");
 
 	dump_disassembly();
+
+	extern uint8_t next_interrupt, last_unused_interrupt;
+	mvprintw(1, 80, "+----------------+");
+	mvprintw(2, 80, "| NxtInt:   0x%.2x |", next_interrupt);
+	mvprintw(3, 80, "| CurInt:   0x%.2x |", last_unused_interrupt);
+	mvprintw(4, 80, "| QueInt:   0x%.2x |",
+			(last_unused_interrupt + 256 - next_interrupt) % 256);
+	mvprintw(5, 80, "| HwAtch: 0x%.4x |", hardware_get_attached());
+	mvprintw(6, 80, "+----------------+");
 
 	for (i = 0; i < 10; i++)
 		mvprintw(16 + i, 0,

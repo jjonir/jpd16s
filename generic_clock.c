@@ -1,13 +1,13 @@
 #include <stdlib.h>
 #include <time.h>
-#include "core.h"
+//#include "core.h"
 #include "hardware.h"
 #include "hardware_host.h"
 
 static int clk_scale = 1;
 static int clk_enabled = 0;
 static int int_enabled = 0;
-static int int_msg;
+static uint16_t int_msg;
 static struct timespec t0;
 static int ticks = 0;
 
@@ -76,7 +76,6 @@ int clk_interrupt(void)
 	return 0;
 }
 
-int foo = 0;
 void clk_step(void)
 {
 	struct timespec tp;

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <time.h>
 #include <curses.h>
 #include "hardware.h"
 #include "hardware_host.h"
@@ -24,6 +25,7 @@ static uint16_t pal[PAL_LEN]; // TODO define default pal
 static int custom_pal = 0;
 static uint16_t pal_ram;
 static uint16_t border_col;
+static struct timespec tp_prev;
 
 static void lem_init(void);
 static int lem_interrupt(void);
@@ -59,6 +61,7 @@ struct hw_builtin *get_hw(void)
 
 void lem_init(void)
 {
+	clock_gettime(CLOCK_REALTIME, &tp_prev);
 }
 
 int lem_interrupt(void)
@@ -70,6 +73,7 @@ int lem_interrupt(void)
 	case 0:
 		if (b) {
 			if (connected == 0) {
+				clock_gettime(CLOCK_REALTIME, &tp_prev);
 				// TODO don't start up for ~1s
 			}
 			connected = 1;
@@ -117,6 +121,14 @@ void lem_step(void)
 	uint16_t row, col, index;
 	char row_buf[33] = "                                ";
 	uint16_t vram_buf[384];
+	struct timespec tp_cur;
+	uint64_t ns;
+
+	clock_gettime(CLOCK_REALTIME, &tp_cur);
+	ns = (tp_cur.tv_sec - tp_prev.tv_sec) * 1000000000;
+	ns += (tp_cur.tv_nsec - tp_prev.tv_nsec);
+	if ((ns * 60 / 1000000000) == 0)
+		return;
 
 	mvprintw(vram_top - 1, vram_left - 1, "+--------------------------------+");
 
