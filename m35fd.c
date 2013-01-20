@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include <time.h>
+#include "core.h"
 #include "hardware.h"
 #include "hardware_host.h"
 #include "m35fd.h"
@@ -67,12 +69,12 @@ void fd_init(void)
 
 int fd_interrupt(void)
 {
-	uint16_t x = read_register(REG_X);
+	uint16_t x = registers->X;
 
-	switch (read_register(REG_A)) {
+	switch (registers->A) {
 	case 0:
-		write_register(REG_B, state);
-		write_register(REG_C, error);
+		registers->B = state;
+		registers->C = error;
 		break;
 	case 1:
 		if (x) {
@@ -83,16 +85,16 @@ int fd_interrupt(void)
 		}
 		break;
 	case 2:
-		if (start_read(read_register(REG_X), read_register(REG_Y)) == 0)
-			write_register(REG_B, 1);
+		if (start_read(registers->X, registers->Y) == 0)
+			registers->B = 1;
 		else
-			write_register(REG_B, 0);
+			registers->B = 0;
 		break;
 	case 3:
-		if (start_write(read_register(REG_X), read_register(REG_Y)) == 0)
-			write_register(REG_B, 1);
+		if (start_write(registers->X, registers->Y) == 0)
+			registers->B = 1;
 		else
-			write_register(REG_B, 0);
+			registers->B = 0;
 		break;
 	default:
 		break;
@@ -122,7 +124,7 @@ void fd_step(void)
 			read_start = clock();
 		} else {
 			if (((clock() - read_start) * 1000000 / CLOCKS_PER_SEC) > 16287)
-				write_memory(ram_addr, SECTOR_LEN, &disk[disk_sector * SECTOR_LEN]);
+				memcpy(&memory[ram_addr], &disk[disk_sector * SECTOR_LEN], SECTOR_LEN);
 		}
 	} else if (write_in_progress) {
 		if (!writing) {
@@ -130,7 +132,7 @@ void fd_step(void)
 			write_start = clock();
 		} else {
 			if (((clock() - write_start) * 1000000 / CLOCKS_PER_SEC) > 16287)
-				read_memory(ram_addr, SECTOR_LEN, &disk[disk_sector * SECTOR_LEN]);
+				memcpy(&disk[disk_sector * SECTOR_LEN], &memory[ram_addr], SECTOR_LEN);
 		}
 	}
 }

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdint.h>
+#include <signal.h>
 #include "core.h"
 #include "hardware_host.h"
 #include "interrupts.h"
@@ -14,7 +15,7 @@ enum {
 	STI = 0x1E, STD
 };
 
-const uint16_t inst_clocks[0x20] = {
+static const uint16_t inst_clocks[0x20] = {
 	0, 1, 2, 2, 2, 2, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1,
 	2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 3, 3, 0, 0, 2, 2
 };
@@ -26,16 +27,17 @@ enum {
 	HWN = 0x10, HWQ, HWI
 };
 
-const uint16_t spc_inst_clocks[0x20] = {
+static const uint16_t spc_inst_clocks[0x20] = {
 	0, 3, 0, 0, 0, 0, 0, 0, 4, 1, 1, 3, 2, 0, 0, 0,
 	2, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
 uint16_t clock_time = 0;
 
-struct register_file registers;
-uint16_t *register_array = (uint16_t *)&registers;
-uint16_t memory[0x10000];
+struct register_file *registers;
+uint16_t *register_array;
+uint16_t *memory;
+volatile uint16_t *int_vec;
 
 
 static void clock_tick(uint16_t cycles);
@@ -57,7 +59,7 @@ void clock_tick(uint16_t cycles)
 uint16_t *next_word_addr(void)
 {
 	clock_tick(1);
-	return &memory[registers.PC++];
+	return &memory[registers->PC++];
 }
 
 uint16_t next_word(void)
@@ -79,12 +81,12 @@ uint16_t *decode_lvalue(uint16_t val)
 		return &memory[register_array[val - 0x10] + next_word()];
 	else
 		switch (val) {
-		case 0x18: return &memory[--registers.SP];
-		case 0x19: return &memory[registers.SP];
-		case 0x1A: return &memory[registers.SP + next_word()];
-		case 0x1B: return &registers.SP;
-		case 0x1C: return &registers.PC;
-		case 0x1D: return &registers.EX;
+		case 0x18: return &memory[--registers->SP];
+		case 0x19: return &memory[registers->SP];
+		case 0x1A: return &memory[registers->SP + next_word()];
+		case 0x1B: return &registers->SP;
+		case 0x1C: return &registers->PC;
+		case 0x1D: return &registers->EX;
 		case 0x1E: return &memory[next_word()];
 		case 0x1F: return next_word_addr();
 		default:
@@ -100,7 +102,7 @@ uint16_t *decode_lvalue(uint16_t val)
 uint16_t decode_rvalue(uint16_t val)
 {
 	if (val == 0x18)
-		return memory[registers.SP++];
+		return memory[registers->SP++];
 	else if (val < 0x20)
 		return *decode_lvalue(val);
 	else
@@ -120,11 +122,11 @@ void skip(void)
 
 		if (((val_a >= 0x10) && (val_a <= 0x17)) ||
 				(val_a == 0x1A) || (val_a == 0x1E) || (val_a == 0x1F))
-			registers.PC++; // TODO spec suggests that this doesn't take a tick
+			registers->PC++; // TODO spec suggests that this doesn't take a tick
 
 		if (((val_b >= 0x10) && (val_b <= 0x17)) ||
 				(val_b == 0x1A) || (val_b == 0x1E) || (val_b == 0x1F))
-			registers.PC++; // TODO spec suggests that this doesn't take a tick
+			registers->PC++; // TODO spec suggests that this doesn't take a tick
 	} while ((op >= 0x10) && (op <= 0x17));
 }
 
@@ -150,24 +152,24 @@ void ex_spc(uint16_t inst)
 
 	switch (op) {
 	case JSR:
-		memory[--registers.SP] = registers.PC;
-		registers.PC = rvalue;
+		memory[--registers->SP] = registers->PC;
+		registers->PC = rvalue;
 		break;
 	case INT:
 		queue_interrupt(rvalue);
 		break;
 	case IAG:
 		if (lvalue != NULL) // TODO spec says writing to literals fails silently, I don't like it
-			*lvalue = registers.IA;
+			*lvalue = registers->IA;
 		break;
 	case IAS:
-		registers.IA = rvalue;
+		registers->IA = rvalue;
 		break;
 	case RFI:
 		// TODO I think the argument is ignored, make sure that's the case
 		interrupts_enabled = 1; // (disable queueing)
-		registers.A = memory[registers.SP++];
-		registers.PC = memory[registers.SP++];
+		registers->A = memory[registers->SP++];
+		registers->PC = memory[registers->SP++];
 		break;
 	case IAQ:
 		if (rvalue == 0)
@@ -213,36 +215,36 @@ void ex(void)
 		*lvalue = rvalue;
 		break;
 	case ADD:
-		registers.EX = (((uint32_t)*lvalue + (uint32_t)rvalue) >> 16) & 0xFFFF;
+		registers->EX = (((uint32_t)*lvalue + (uint32_t)rvalue) >> 16) & 0xFFFF;
 		*lvalue += rvalue;
 		break;
 	case SUB:
-		registers.EX = (((int32_t)*lvalue - (int32_t)rvalue) >> 16) & 0xFFFF;
+		registers->EX = (((int32_t)*lvalue - (int32_t)rvalue) >> 16) & 0xFFFF;
 		*lvalue -= rvalue;
 		break;
 	case MUL:
-		registers.EX = (((uint32_t)*lvalue * (uint32_t)rvalue) >> 16) & 0xFFFF;
+		registers->EX = (((uint32_t)*lvalue * (uint32_t)rvalue) >> 16) & 0xFFFF;
 		*lvalue *= rvalue;
 		break;
 	case MLI:
-		registers.EX = (((int32_t)*lvalue * (int32_t)rvalue) >> 16) & 0xFFFF;
+		registers->EX = (((int32_t)*lvalue * (int32_t)rvalue) >> 16) & 0xFFFF;
 		*(int16_t *)lvalue *= (int16_t)rvalue;
 		break;
 	case DIV:
 		if (rvalue == 0) {
-			registers.EX = 0;
+			registers->EX = 0;
 			*lvalue = 0;
 		} else {
-			registers.EX = (((uint32_t)*lvalue << 16) / (uint32_t)rvalue) & 0xFFFF;
+			registers->EX = (((uint32_t)*lvalue << 16) / (uint32_t)rvalue) & 0xFFFF;
 			*lvalue /= rvalue;
 		}
 		break;
 	case DVI:
 		if (rvalue == 0) {
-			registers.EX = 0;
+			registers->EX = 0;
 			*lvalue = 0;
 		} else {
-			registers.EX = (((int32_t)*lvalue << 16) / (int32_t)rvalue) & 0xFFFF;
+			registers->EX = (((int32_t)*lvalue << 16) / (int32_t)rvalue) & 0xFFFF;
 			*(int16_t *)lvalue /= (int16_t)rvalue;
 		}
 		break;
@@ -268,15 +270,15 @@ void ex(void)
 		*lvalue ^= rvalue;
 		break;
 	case SHR:
-		registers.EX = (((uint32_t)*lvalue << 16) >> rvalue) & 0xFFFF;
+		registers->EX = (((uint32_t)*lvalue << 16) >> rvalue) & 0xFFFF;
 		*lvalue >>= rvalue;
 		break;
 	case ASR:
-		registers.EX = (((uint32_t)*lvalue << 16) >> rvalue) & 0xFFFF;
+		registers->EX = (((uint32_t)*lvalue << 16) >> rvalue) & 0xFFFF;
 		*(int16_t *)lvalue >>= rvalue;
 		break;
 	case SHL:
-		registers.EX = (((uint32_t)*lvalue << rvalue) >> 16) & 0xFFFF;
+		registers->EX = (((uint32_t)*lvalue << rvalue) >> 16) & 0xFFFF;
 		*lvalue <<= rvalue;
 		break;
 	case IFB:
@@ -313,25 +315,25 @@ void ex(void)
 		break;
 	case ADX:
 		temp_EX = (((uint32_t)*lvalue + (uint32_t)rvalue +
-							(uint32_t)registers.EX) >> 16) & 0xFFFF;
-		*lvalue += (rvalue + registers.EX);
-		registers.EX = temp_EX;
+							(uint32_t)registers->EX) >> 16) & 0xFFFF;
+		*lvalue += (rvalue + registers->EX);
+		registers->EX = temp_EX;
 		break;
 	case SBX:
 		temp_EX = (((int32_t)*lvalue - ((int32_t)rvalue +
-							(int32_t)registers.EX)) >> 16) & 0xFFFF;
-		*lvalue -= (rvalue + registers.EX);
-		registers.EX = temp_EX;
+							(int32_t)registers->EX)) >> 16) & 0xFFFF;
+		*lvalue -= (rvalue + registers->EX);
+		registers->EX = temp_EX;
 		break;
 	case STI:
 		*lvalue = rvalue;
-		registers.I += 1;
-		registers.J += 1;
+		registers->I += 1;
+		registers->J += 1;
 		break;
 	case STD:
 		*lvalue = rvalue;
-		registers.I -= 1;
-		registers.J -= 1;
+		registers->I -= 1;
+		registers->J -= 1;
 		break;
 	default:
 		// TODO unspecified, catch fire or fail silently?
@@ -355,15 +357,7 @@ uint16_t sim_step(void)
 	return clock_time - clock_before;
 }
 
-void run_dcpu16(void)
-{
-	while (1) {
-		sim_step();
-	}
-}
-
-// TODO make a more accurate hcf routine
 void CATCH_FIRE(void)
 {
-	exit(1);
+	raise(SIGINT);
 }

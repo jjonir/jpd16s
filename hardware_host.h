@@ -1,6 +1,7 @@
 #ifndef _HARDWARE_HOST_H
 #define _HARDWARE_HOST_H
 
+#include <unistd.h>
 #include <stdint.h>
 
 enum {
@@ -20,7 +21,7 @@ struct hw_builtin {
 };
 
 struct hw_module {
-	int tx, rx;
+	pid_t pid;
 };
 
 union hw {
@@ -35,6 +36,7 @@ struct hardware {
 
 void attach_hardware_builtin(void);
 int attach_hardware_module(const char *name);
+void detach_all_hardware_modules(void);
 void hardware_hwi(uint16_t where);
 void hardware_hwq(uint16_t where);
 void hardware_step_all(void);

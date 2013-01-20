@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <curses.h>
+#include "core.h"
 #include "hardware.h"
 #include "hardware_host.h"
 
@@ -67,9 +68,9 @@ void lem_init(void)
 int lem_interrupt(void)
 {
 	uint16_t cycles = 0;
-	uint16_t b = read_register(REG_B);
+	uint16_t b = registers->B;
 
-	switch (read_register(REG_A)) {
+	switch (registers->A) {
 	case 0:
 		if (b) {
 			if (connected == 0) {
@@ -102,11 +103,11 @@ int lem_interrupt(void)
 		border_col = b;
 		break;
 	case 4:
-		write_memory(b, FONT_LEN, font);
+		memcpy(&memory[b], font, FONT_LEN);
 		cycles = 256;
 		break;
 	case 5:
-		write_memory(b, PAL_LEN, pal);
+		memcpy(&memory[b], pal, PAL_LEN);
 		cycles = 16;
 		break;
 	default:
@@ -133,7 +134,7 @@ void lem_step(void)
 	mvprintw(vram_top - 1, vram_left - 1, "+--------------------------------+");
 
 	if (connected) {
-		read_memory(vram, VRAM_LEN, vram_buf);
+		memcpy(vram_buf, &memory[vram], VRAM_LEN);
 
 		if (custom_font)
 			return; // TODO something else
