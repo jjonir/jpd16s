@@ -6,8 +6,8 @@ HARDWARE = lem1802 generic_clock m35fd
 HARDWARE_OBJ = $(HARDWARE:%=%.o)
 HARDWARE_MODULE_OBJ = $(HARDWARE:%=%_module.o)
 # TODO don't do that ../foo thing
-OBJECTS = core.o hardware_builtin.o hardware_host.o interrupts.o sim.o ../jpd16a/disasm.o $(HARDWARE_OBJ)
-HARDWARE_MODULE = hardware_module_driver.o hardware_module_interface.o
+OBJECTS = core.o hardware_host.o dcpu16.o sim.o ../jpd16a/disasm.o $(HARDWARE_OBJ)
+HARDWARE_MODULE = hardware_module_driver.o
 
 .PHONY: all clean
 

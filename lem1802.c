@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <curses.h>
-#include "hardware.h"
+#include "dcpu16.h"
 #include "hardware_host.h"
 
 #define VRAM_LEN 384
@@ -67,46 +67,50 @@ void lem_init(void)
 int lem_interrupt(void)
 {
 	uint16_t cycles = 0;
-	uint16_t b = read_register(REG_B);
+	int i;
 
-	switch (read_register(REG_A)) {
+	switch (registers->A) {
 	case 0:
-		if (b) {
+		if (registers->B) {
 			if (connected == 0) {
 				clock_gettime(CLOCK_REALTIME, &tp_prev);
 				// TODO don't start up for ~1s
 			}
 			connected = 1;
-			vram = b;
+			vram = registers->B;
 		} else {
 			connected = 0;
 		}
 		break;
 	case 1:
-		if (b) {
+		if (registers->B) {
 			custom_font = 1;
-			font_ram = b;
+			font_ram = registers->B;
 		} else {
 			custom_font = 1;
 		}
 		break;
 	case 2:
-		if (b) {
+		if (registers->B) {
 			custom_pal = 1;
-			pal_ram = b;
+			pal_ram = registers->B;
 		} else {
 			custom_pal = 1;
 		}
 		break;
 	case 3:
-		border_col = b;
+		border_col = registers->B;
 		break;
 	case 4:
-		write_memory(b, FONT_LEN, font);
+		for (i = 0; i < FONT_LEN; i++) {
+			memory[registers->B + i] = font[i];
+		}
 		cycles = 256;
 		break;
 	case 5:
-		write_memory(b, PAL_LEN, pal);
+		for (i = 0; i < PAL_LEN; i++) {
+			memory[registers->B + i] = pal[i];
+		}
 		cycles = 16;
 		break;
 	default:
@@ -123,6 +127,7 @@ void lem_step(void)
 	uint16_t vram_buf[384];
 	struct timespec tp_cur;
 	uint64_t ns;
+	int i;
 
 	clock_gettime(CLOCK_REALTIME, &tp_cur);
 	ns = (tp_cur.tv_sec - tp_prev.tv_sec) * 1000000000;
@@ -133,7 +138,9 @@ void lem_step(void)
 	mvprintw(vram_top - 1, vram_left - 1, "+--------------------------------+");
 
 	if (connected) {
-		read_memory(vram, VRAM_LEN, vram_buf);
+		for (i = 0; i < VRAM_LEN; i++) {
+			vram_buf[i] = memory[vram + i];
+		}
 
 		if (custom_font)
 			return; // TODO something else

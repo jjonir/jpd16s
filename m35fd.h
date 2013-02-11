@@ -1,8 +1,6 @@
 #ifndef _M35FD_H
 #define _M35FD_H
 
-#include "hardware.h"
-
 enum m35fd_state {
 	STATE_NO_MEDIA,
 	STATE_READY,
