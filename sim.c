@@ -39,16 +39,24 @@ int main(int argc, char *argv[])
 	initscr();
 	atexit(deinit);
 	if (dbg == 0) {
-		run_dcpu16();
-		//while (1) {
-			//mvprintw(1,  100, "Clock: 0x%.4x", clock_time);
-			//sim_step();
-		//}
+		sim_run();
 	} else {
+		int run = 0;
 		while (1) {
+			int cmd;
 			dump_state();
-			usleep(100);
-			sim_step();
+			if (run) {
+				usleep(100000);
+				sim_step();
+			} else {
+				cmd = getch();
+				if (cmd == 'Q') {
+				} else if (cmd == 'r') {
+					run = 1;
+				} else {
+					sim_step();
+				}
+			}
 		}
 	}
 	endwin();
@@ -94,6 +102,15 @@ void dump_state(void)
 			(last_unused_interrupt + 256 - next_interrupt) % 256);
 	mvprintw(5, 80, "| HwAtch: 0x%.4x |", hardware_get_attached());
 	mvprintw(6, 80, "+----------------+");
+
+	mvprintw(1, 99, "+--------+");
+	for (i = 0; i < 12 && i+registers.SP < 0x10000; i++) {
+		mvprintw(2+i, 99, "| 0x%.4x |", memory[registers.SP + i]);
+	}
+	mvprintw(2+i, 99, "+--------+");
+	for (i++; i <= 12; i++) {
+		mvprintw(2+i, 99, "          ");
+	}
 
 	for (i = 0; i < 10; i++)
 		mvprintw(16 + i, 0,

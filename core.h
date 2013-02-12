@@ -17,7 +17,7 @@ extern uint16_t memory[0x10000];
 
 void sim_init(void);
 uint16_t sim_step(void);
-void run_dcpu16(void);
+void sim_run(void);
 void CATCH_FIRE(void);
 
 #endif

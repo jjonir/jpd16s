@@ -149,7 +149,11 @@ void lem_step(void)
 		}
 	} else {
 		for (row = 0; row < VRAM_ROWS; row++) {
-			mvprintw(vram_top + row, vram_left - 1, "|%s|", row_buf);
+			if (row == VRAM_ROWS / 2) {
+				mvprintw(vram_top + row, vram_left - 1, "|     LEM1802 - not connected    |");
+			} else {
+				mvprintw(vram_top + row, vram_left - 1, "|%s|", row_buf);
+			}
 		}
 	}
 

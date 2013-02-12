@@ -1,11 +1,10 @@
 #include <stdlib.h>
 #include <time.h>
-//#include "core.h"
 #include "hardware.h"
 #include "hardware_host.h"
 
-static int clk_scale = 1;
 static int clk_enabled = 0;
+static int clk_scale;
 static int int_enabled = 0;
 static uint16_t int_msg;
 static struct timespec t0;
@@ -88,8 +87,9 @@ void clk_step(void)
 		ns += (tp.tv_nsec - t0.tv_nsec);
 		ticks = ns * 60 / 1000000000 / clk_scale;
 
-		if (int_enabled && (old_ticks != ticks))
-		// TODO if more than one tick passed, trigger more than once? or maybe that should be impossible, since the nominal clock rate is 100 kHz and it would only be a problem on massively scaled down debug mode.
+		// if somehow more than 1 tick passed, this will only trigger once
+		if (int_enabled && (old_ticks != ticks)) {
 			raise_interrupt(int_msg);
+		}
 	}
 }
