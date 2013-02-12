@@ -36,6 +36,7 @@ int main(int argc, char *argv[])
 	attach_hardware_builtin();
 	//attach_hardware_module("./lem1802");
 	//attach_hardware_module("./generic_clock");
+	attach_hardware_module("./sped3");
 	sim_start();
 
 	initscr();

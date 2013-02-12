@@ -9,6 +9,7 @@
 #include "hardware_host.h"
 #include "lem1802.h"
 #include "generic_clock.h"
+#include "sped3.h"
 
 struct hardware hardware[0x10000];
 
@@ -23,10 +24,19 @@ void attach_hardware_builtin(void)
 	where = attached++;
 	hardware[where].type = HARDWARE_BUILTIN;
 	hardware[where].hw.builtin = lem1802(2, 46); // TODO 1, 1 if not debug?
+	hardware[where].hw.builtin->init();
 
 	where = attached++;
 	hardware[where].type = HARDWARE_BUILTIN;
 	hardware[where].hw.builtin = generic_clock();
+	hardware[where].hw.builtin->init();
+
+/*
+	where = attached++;
+	hardware[where].type = HARDWARE_BUILTIN;
+	hardware[where].hw.builtin = sped3();
+	hardware[where].hw.builtin->init();
+*/
 }
 
 int attach_hardware_module(const char *name)

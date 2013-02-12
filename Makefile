@@ -1,8 +1,11 @@
 CC = gcc
 CFLAGS = -Wall -Wextra
-LDLIBS = -lncurses -lrt
+CURS_LIBS = -lncurses
+TIME_LIBS = -lrt
+GL_LIBS = -lglut -lGLU -lGL
+LDLIBS = $(CURS_LIBS) $(TIME_LIBS) $(GL_LIBS)
 RM = rm -f
-HARDWARE = lem1802 generic_clock m35fd
+HARDWARE = lem1802 generic_clock m35fd sped3
 HARDWARE_OBJ = $(HARDWARE:%=%.o)
 HARDWARE_MODULE_OBJ = $(HARDWARE:%=%_module.o)
 # TODO don't do that ../foo thing
@@ -11,7 +14,7 @@ HARDWARE_MODULE = hardware_module.o
 
 .PHONY: all clean
 
-all: jpd16s lem1802 generic_clock m35fd
+all: jpd16s $(HARDWARE)
 
 jpd16s: $(OBJECTS)
 	@echo LD $@
@@ -19,15 +22,19 @@ jpd16s: $(OBJECTS)
 
 lem1802: $(HARDWARE_MODULE) lem1802_module.o
 	@echo LD $@
-	$(CC) $(LDFLAGS) -o $@ $(HARDWARE_MODULE) lem1802_module.o $(LDLIBS)
+	$(CC) $(LDFLAGS) -o $@ $(HARDWARE_MODULE) lem1802_module.o $(CURS_LIBS) $(TIME_LIBS)
 
 generic_clock: $(HARDWARE_MODULE) generic_clock_module.o
 	@echo LD $@
-	$(CC) $(LDFLAGS) -o $@ $(HARDWARE_MODULE) generic_clock_module.o $(LDLIBS)
+	$(CC) $(LDFLAGS) -o $@ $(HARDWARE_MODULE) generic_clock_module.o $(TIME_LIBS)
 
 m35fd: $(HARDWARE_MODULE) m35fd_module.o
 	@echo LD $@
-	$(CC) $(LDFLAGS) -o $@ $(HARDWARE_MODULE) m35fd_module.o $(LDLIBS)
+	$(CC) $(LDFLAGS) -o $@ $(HARDWARE_MODULE) m35fd_module.o $(TIME_LIBS)
+
+sped3: $(HARDWARE_MODULE) sped3_module.o
+	@echo LD $@
+	$(CC) $(LDFLAGS) -o $@ $(HARDWARE_MODULE) sped3_module.o $(GL_LIBS)
 
 %_module.o: %.c
 	@echo CC $@
