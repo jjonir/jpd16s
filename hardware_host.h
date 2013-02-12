@@ -2,6 +2,7 @@
 #define _HARDWARE_HOST_H
 
 #include <stdint.h>
+#include <sys/types.h>
 
 enum {
 	HARDWARE_NONE = 0,
@@ -20,7 +21,7 @@ struct hw_builtin {
 };
 
 struct hw_module {
-	int tx, rx;
+	pid_t pid;
 };
 
 union hw {

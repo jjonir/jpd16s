@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <time.h>
-#include "hardware.h"
+#include "dcpu16.h"
 #include "hardware_host.h"
 
 static int clk_enabled = 0;
@@ -45,25 +45,23 @@ void clk_init(void)
 
 int clk_interrupt(void)
 {
-	uint16_t b = read_register(REG_B);
-
-	switch(read_register(REG_A)) {
+	switch(registers->A) {
 	case 0:
-		if (b) {
+		if (registers->B) {
 			clk_enabled = 1;
 			clock_gettime(CLOCK_REALTIME, &t0);
-			clk_scale = b;
+			clk_scale = registers->B;
 		} else {
 			clk_enabled = 0;
 		}
 		break;
 	case 1:
-		write_register(REG_C, ticks);
+		registers->C = ticks;
 		break;
 	case 2:
-		if (b) {
+		if (registers->B) {
 			int_enabled = 1;
-			int_msg = b;
+			int_msg = registers->B;
 		} else {
 			int_enabled = 0;
 		}

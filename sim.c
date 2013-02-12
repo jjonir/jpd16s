@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <ncurses.h>
 #include "core.h"
+#include "dcpu16.h"
 #include "hardware_host.h"
 #include "lem1802.h"
 #include "generic_clock.h"
@@ -28,13 +29,14 @@ int main(int argc, char *argv[])
 			strncpy(corefilename, argv[i], 1023);
 	}
 
+	sim_init();
 	if (load_bin(corefilename) != 0)
 		exit(1);
 
-	sim_init();
 	attach_hardware_builtin();
-	//attach_hardware_module("./lem1802");
-	//attach_hardware_module("./generic_clock");
+	attach_hardware_module("./lem1802");
+	attach_hardware_module("./generic_clock");
+	sim_start();
 
 	initscr();
 	atexit(deinit);
@@ -78,28 +80,27 @@ void dump_state(void)
 	mvprintw(0,  0, "Clock: 0x%.4x", clock_time);
 
 	mvprintw(1,  0, "+------------+");
-	mvprintw(2,  0, "| A:  0x%.4x |", registers.A);
-	mvprintw(3,  0, "| B:  0x%.4x |", registers.B);
-	mvprintw(4,  0, "| C:  0x%.4x |", registers.C);
-	mvprintw(5,  0, "| X:  0x%.4x |", registers.X);
-	mvprintw(6,  0, "| Y:  0x%.4x |", registers.Y);
-	mvprintw(7,  0, "| Z:  0x%.4x |", registers.Z);
-	mvprintw(8,  0, "| I:  0x%.4x |", registers.I);
-	mvprintw(9,  0, "| J:  0x%.4x |", registers.J);
-	mvprintw(10, 0, "| PC: 0x%.4x |", registers.PC);
-	mvprintw(11, 0, "| SP: 0x%.4x |", registers.SP);
-	mvprintw(12, 0, "| EX: 0x%.4x |", registers.EX);
-	mvprintw(13, 0, "| IA: 0x%.4x |", registers.IA);
+	mvprintw(2,  0, "| A:  0x%.4x |", registers->A);
+	mvprintw(3,  0, "| B:  0x%.4x |", registers->B);
+	mvprintw(4,  0, "| C:  0x%.4x |", registers->C);
+	mvprintw(5,  0, "| X:  0x%.4x |", registers->X);
+	mvprintw(6,  0, "| Y:  0x%.4x |", registers->Y);
+	mvprintw(7,  0, "| Z:  0x%.4x |", registers->Z);
+	mvprintw(8,  0, "| I:  0x%.4x |", registers->I);
+	mvprintw(9,  0, "| J:  0x%.4x |", registers->J);
+	mvprintw(10, 0, "| PC: 0x%.4x |", registers->PC);
+	mvprintw(11, 0, "| SP: 0x%.4x |", registers->SP);
+	mvprintw(12, 0, "| EX: 0x%.4x |", registers->EX);
+	mvprintw(13, 0, "| IA: 0x%.4x |", registers->IA);
 	mvprintw(14, 0, "+------------+");
 
 	dump_disassembly();
 
-	extern uint8_t next_interrupt, last_unused_interrupt;
 	mvprintw(1, 80, "+----------------+");
-	mvprintw(2, 80, "| NxtInt:   0x%.2x |", next_interrupt);
-	mvprintw(3, 80, "| CurInt:   0x%.2x |", last_unused_interrupt);
+	mvprintw(2, 80, "| NxtInt:   0x%.2x |", interrupts->first);
+	mvprintw(3, 80, "| CurInt:   0x%.2x |", interrupts->last);
 	mvprintw(4, 80, "| QueInt:   0x%.2x |",
-			(last_unused_interrupt + 256 - next_interrupt) % 256);
+			(interrupts->last + 256 - interrupts->first) % 256);
 	mvprintw(5, 80, "| HwAtch: 0x%.4x |", hardware_get_attached());
 	mvprintw(6, 80, "+----------------+");
 
@@ -121,9 +122,9 @@ void dump_state(void)
 				memory[i * 8 + 6], memory[i * 8 + 7]);
 
 	attron(A_BOLD);
-	inst_len = decode_inst(&memory[registers.PC], buf);
+	inst_len = decode_inst(&memory[registers->PC], buf);
 	for (i = 0; i < inst_len; i++) {
-		addr = registers.PC + i;
+		addr = registers->PC + i;
 		mvprintw(16 + (addr / 8), 6 + 5 * (addr % 8), "%.4x", memory[addr]);
 	}
 	attroff(A_BOLD);
@@ -141,7 +142,7 @@ void dump_disassembly(void)
 
 	pc_index = 0;
 	for (i = 0; i < 12; i++) {
-		if (addr_buf[i] == registers.PC) {
+		if (addr_buf[i] == registers->PC) {
 			pc_index = i;
 			break;
 		}
@@ -157,13 +158,13 @@ void dump_disassembly(void)
 		mvprintw(i + 2, disasm_x, "| %.4x %s", addr_buf[i + offset], buf);
 		addr_buf[i] = addr_buf[i + offset];
 	}
-	for (addr = registers.PC; i < 12; i++, addr += inst_len) {
+	for (addr = registers->PC; i < 12; i++, addr += inst_len) {
 		inst_len = decode_inst(&memory[addr], buf);
 		mvprintw(i + 2, disasm_x, "|                           |");
-		if (addr == registers.PC)
+		if (addr == registers->PC)
 			attron(A_BOLD);
 		mvprintw(i + 2, disasm_x + 2,   "%.4x %s", addr, buf);
-		if (addr == registers.PC)
+		if (addr == registers->PC)
 			attroff(A_BOLD);
 		addr_buf[i] = addr;
 	}
