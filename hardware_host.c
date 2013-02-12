@@ -20,13 +20,13 @@ void attach_hardware_builtin(void)
 {
 	uint16_t where;
 
-	//where = attached++;
-	//hardware[where].type = HARDWARE_BUILTIN;
-	//hardware[where].hw.builtin = lem1802(2, 46); // TODO 1, 1 if not debug?
+	where = attached++;
+	hardware[where].type = HARDWARE_BUILTIN;
+	hardware[where].hw.builtin = lem1802(2, 46); // TODO 1, 1 if not debug?
 
-	//where = attached++;
-	//hardware[where].type = HARDWARE_BUILTIN;
-	//hardware[where].hw.builtin = generic_clock();
+	where = attached++;
+	hardware[where].type = HARDWARE_BUILTIN;
+	hardware[where].hw.builtin = generic_clock();
 }
 
 int attach_hardware_module(const char *name)

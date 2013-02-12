@@ -377,7 +377,7 @@ uint16_t sim_step(void)
 	return clock_time - clock_before;
 }
 
-void sim_run(void)
+void run_dcpu16(void)
 {
 	while (1) {
 		sim_step();

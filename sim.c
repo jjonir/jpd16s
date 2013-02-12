@@ -34,14 +34,14 @@ int main(int argc, char *argv[])
 		exit(1);
 
 	attach_hardware_builtin();
-	attach_hardware_module("./lem1802");
-	attach_hardware_module("./generic_clock");
+	//attach_hardware_module("./lem1802");
+	//attach_hardware_module("./generic_clock");
 	sim_start();
 
 	initscr();
 	atexit(deinit);
 	if (dbg == 0) {
-		sim_run();
+		run_dcpu16();
 	} else {
 		int run = 0;
 		while (1) {
@@ -105,8 +105,8 @@ void dump_state(void)
 	mvprintw(6, 80, "+----------------+");
 
 	mvprintw(1, 99, "+--------+");
-	for (i = 0; i < 12 && i+registers.SP < 0x10000; i++) {
-		mvprintw(2+i, 99, "| 0x%.4x |", memory[registers.SP + i]);
+	for (i = 0; i < 12 && i+registers->SP < 0x10000; i++) {
+		mvprintw(2+i, 99, "| 0x%.4x |", memory[registers->SP + i]);
 	}
 	mvprintw(2+i, 99, "+--------+");
 	for (i++; i <= 12; i++) {

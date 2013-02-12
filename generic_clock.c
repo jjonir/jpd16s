@@ -87,7 +87,7 @@ void clk_step(void)
 
 		// if somehow more than 1 tick passed, this will only trigger once
 		if (int_enabled && (old_ticks != ticks)) {
-			raise_interrupt(int_msg);
+			interrupts->queue[interrupts->last++] = int_msg;
 		}
 	}
 }
