@@ -1,9 +1,18 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <time.h>
 #include "dcpu16.h"
-#include "hardware_host.h"
 #include "m35fd.h"
+#ifdef BUILD_MODULE
+#include "hardware_module.h"
+#else
+#include "hardware_host.h"
+#endif
+
+#define HW_ID (0x4fd524c5)
+#define HW_VER (0x000b)
+#define HW_MFG (0x1eb37e91)
 
 #define SECTOR_LEN 512
 #define SECTORS_PER_TRACK 18
@@ -34,10 +43,11 @@ static void fd_step(void);
 static int start_read(uint16_t read_sector, uint16_t addr);
 static int start_write(uint16_t write_sector, uint16_t addr);
 
+#ifndef BUILD_MODULE
 struct hw_builtin fd_builtin = {
-	0x4fd524c5,
-	0x000b,
-	0x1eb37e91,
+	HW_ID,
+	HW_VER,
+	HW_MFG,
 	&fd_init,
 	&fd_interrupt,
 	&fd_step
@@ -53,11 +63,30 @@ struct hw_builtin *m35fd(uint16_t *buf)
 	*fd = fd_builtin;
 	return fd;
 }
+#endif
 
 #ifdef BUILD_MODULE
-struct hw_builtin *get_hw(void)
+int main(int argc, char *argv[])
 {
-	return m35fd(NULL);
+	init_module();
+	fd_init();
+
+	while (1) {
+		fd_step();
+		if (int_requested) {
+			fprintf(stderr, "got hwi, A=0x%hx\n", registers->A);
+			fd_interrupt();
+			int_requested = 0;
+		}
+		if (hwq_requested) {
+			fprintf(stderr, "got hwq\n");
+			hwq(HW_ID, HW_VER, HW_MFG);
+			hwq_requested = 0;
+		}
+	}
+
+	shutdown_module();
+	return 0;
 }
 #endif
 

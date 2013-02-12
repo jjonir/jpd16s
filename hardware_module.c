@@ -8,7 +8,6 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include "dcpu16.h"
-#include "hardware_host.h"
 
 uint16_t *memory;
 struct register_file *registers;
@@ -16,15 +15,12 @@ struct interrupts *interrupts;
 
 sig_atomic_t int_requested, hwq_requested;
 
-extern struct hw_builtin *get_hw(void);
 static void get_mem(void);
 static void release_mem(void);
-static void hwq(struct hw_builtin * hw);
 static void sigusr_handler(int n);
 
-int main(int argc, char *argv[])
+int init_module(void)
 {
-	struct hw_builtin *hw;
 	struct sigaction sa;
 
 	sa.sa_handler = sigusr_handler;
@@ -32,32 +28,22 @@ int main(int argc, char *argv[])
 	sigemptyset(&sa.sa_mask);
 	if (sigaction(SIGUSR1, &sa, NULL) == -1) {
 		perror("sigaction");
-		exit(1);
+		return -1;
 	}
 	if (sigaction(SIGUSR2, &sa, NULL) == -1) {
 		perror("sigaction");
-		exit(1);
+		return -1;
 	}
 
 	get_mem();
-	hw = get_hw();
 
-	memory[0xFFFF] = 0; // confirm init complete
+	memory[0xFFFF] = 0; // confirm init complete TODO set to some other value if failure happens
 
-	while (!feof(stdin)) {
-		(*hw->step)();
-		if (int_requested) {
-			(*hw->interrupt)();
-fprintf(stderr, "got hwi\n");
-			int_requested = 0;
-		}
-		if (hwq_requested) {
-			hwq(hw);
-fprintf(stderr, "got hwq\n");
-			hwq_requested = 0;
-		}
-	}
+	return 0;
+}
 
+int shutdown_module(void)
+{
 	release_mem();
 	return 0;
 }
@@ -110,13 +96,13 @@ void release_mem(void)
 	}
 }
 
-void hwq(struct hw_builtin *hw)
+void hwq(uint32_t id, uint16_t ver, uint32_t mfg)
 {
-	registers->A = hw->id & 0xFFFF;
-	registers->B = hw->id >> 16;
-	registers->C = hw->version;
-	registers->X = hw->mfg & 0xFFFF;
-	registers->Y = hw->mfg >> 16;
+	registers->A = id & 0xFFFF;
+	registers->B = id >> 16;
+	registers->C = ver;
+	registers->X = mfg & 0xFFFF;
+	registers->Y = mfg >> 16;
 }
 
 void sigusr_handler(int n)

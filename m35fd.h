@@ -18,6 +18,8 @@ enum m35fd_error {
 	ERROR_BROKEN
 };
 
+#ifndef BUILD_MODULE
 struct hw_builtin *m35fd(uint16_t *buf);
+#endif
 
 #endif

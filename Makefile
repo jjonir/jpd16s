@@ -7,7 +7,7 @@ HARDWARE_OBJ = $(HARDWARE:%=%.o)
 HARDWARE_MODULE_OBJ = $(HARDWARE:%=%_module.o)
 # TODO don't do that ../foo thing
 OBJECTS = core.o hardware_host.o dcpu16.o sim.o ../jpd16a/disasm.o $(HARDWARE_OBJ)
-HARDWARE_MODULE = hardware_module_driver.o
+HARDWARE_MODULE = hardware_module.o
 
 .PHONY: all clean
 

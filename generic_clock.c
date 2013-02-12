@@ -1,7 +1,17 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include "dcpu16.h"
+
+#ifdef BUILD_MODULE
+#include "hardware_module.h"
+#else
 #include "hardware_host.h"
+#endif
+
+#define HW_ID (0x12d0b402)
+#define HW_VER (0x0001)
+#define HW_MFG (0x00000000)
 
 static int clk_enabled = 0;
 static int clk_scale;
@@ -14,10 +24,11 @@ static void clk_init(void);
 static int clk_interrupt(void);
 static void clk_step(void);
 
+#ifndef BUILD_MODULE
 struct hw_builtin clk_builtin = {
-	0x12d0b402,
-	0x0001,
-	0x00000000,
+	HW_ID,
+	HW_VER,
+	HW_MFG,
 	&clk_init,
 	&clk_interrupt,
 	&clk_step
@@ -31,11 +42,30 @@ struct hw_builtin *generic_clock(void)
 	*clk = clk_builtin;
 	return clk;
 }
+#endif
 
 #ifdef BUILD_MODULE
-struct hw_builtin *get_hw(void)
+int main(int argc, char *argv[])
 {
-	return generic_clock();
+	init_module();
+	clk_init();
+
+	while (1) {
+		clk_step();
+		if (int_requested) {
+			fprintf(stderr, "got hwi, A=0x%hx\n", registers->A);
+			clk_interrupt();
+			int_requested = 0;
+		}
+		if (hwq_requested) {
+			fprintf(stderr, "got hwq\n");
+			hwq(HW_ID, HW_VER, HW_MFG);
+			hwq_requested = 0;
+		}
+	}
+
+	shutdown_module();
+	return 0;
 }
 #endif
 

@@ -4,7 +4,16 @@
 #include <time.h>
 #include <curses.h>
 #include "dcpu16.h"
+
+#ifdef BUILD_MODULE
+#include "hardware_module.h"
+#else
 #include "hardware_host.h"
+#endif
+
+#define HW_ID (0x7349f615)
+#define HW_VER (0x1802)
+#define HW_MFG (0x1c6c8b36)
 
 #define VRAM_LEN 384
 #define VRAM_ROWS 12
@@ -31,10 +40,11 @@ static void lem_init(void);
 static int lem_interrupt(void);
 static void lem_step(void);
 
+#ifndef BUILD_MODULE
 struct hw_builtin lem_builtin = {
-	0x7349f615,
-	0x1802,
-	0x1c6c8b36,
+	HW_ID,
+	HW_VER,
+	HW_MFG,
 	&lem_init,
 	&lem_interrupt,
 	&lem_step
@@ -51,11 +61,30 @@ struct hw_builtin *lem1802(int top, int left)
 	*lem = lem_builtin;
 	return lem;
 }
+#endif
 
 #ifdef BUILD_MODULE
-struct hw_builtin *get_hw(void)
+int main(int argc, char *argv[])
 {
-	return lem1802(1, 1);
+	init_module();
+	lem_init();
+
+	while (1) {
+		lem_step();
+		if (int_requested) {
+			fprintf(stderr, "got hwi, A=0x%hx\n", registers->A);
+			lem_interrupt();
+			int_requested = 0;
+		}
+		if (hwq_requested) {
+			fprintf(stderr, "got hwq\n");
+			hwq(HW_ID, HW_VER, HW_MFG);
+			hwq_requested = 0;
+		}
+	}
+
+	shutdown_module();
+	return 0;
 }
 #endif
 
