@@ -4,6 +4,7 @@
 #include <time.h>
 #include <GL/freeglut.h>
 #include "dcpu16.h"
+#include "sped3.h"
 
 #ifdef BUILD_MODULE
 #include "hardware_module.h"
