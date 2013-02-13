@@ -2,7 +2,7 @@
 #define _HARDWARE_MODULE_H
 
 #include <stdint.h>
-#include <sys/types.h>
+#include <sys/signal.h>
 
 extern sig_atomic_t int_requested, hwq_requested;
 

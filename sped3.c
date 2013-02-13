@@ -108,8 +108,8 @@ void sped_init()
 
 	view_rot_x = view_rot_y = 0;
 
-	state = 0;
-	error = 0;
+	state = SPED_STATE_NO_DATA;
+	error = SPED_ERROR_NONE;
 }
 
 int sped_interrupt(void)
@@ -138,14 +138,25 @@ int sped_interrupt(void)
 void sped_step(void)
 {
 	glutMainLoopEvent();
-	// TODO rotation and if rotation changes glutPostRedisplay
+
+	if (current_rotation != target_rotation) {
+		//TODO rotate toward target @5 deg/s
+	}
+
+	if (current_rotation != target_rotation) {
+		state = SPED_STATE_TURNING;
+	} else if (vertex_count == 0) {
+		state = SPED_STATE_NO_DATA;
+	} else {
+		state = SPED_STATE_RUNNING;
+	}
 }
 
 void display(void)
 {
 	int i;
 
-	fprintf(stderr, "sped3 displaying lines\n");
+	fprintf(stderr, "sped3 displaying 0x%hX lines\n", vertex_count);
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 	glLoadIdentity();

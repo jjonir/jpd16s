@@ -34,7 +34,7 @@ m35fd: $(HARDWARE_MODULE) m35fd_module.o
 
 sped3: $(HARDWARE_MODULE) sped3_module.o
 	@echo LD $@
-	$(CC) $(LDFLAGS) -o $@ $(HARDWARE_MODULE) sped3_module.o $(GL_LIBS)
+	$(CC) $(LDFLAGS) -o $@ $(HARDWARE_MODULE) sped3_module.o $(GL_LIBS) $(TIME_LIBS)
 
 %_module.o: %.c
 	@echo CC $@
