@@ -36,6 +36,7 @@ struct hardware {
 
 void attach_hardware_builtin(void);
 int attach_hardware_module(const char *name);
+void hardware_deinit(void);
 void hardware_hwi(uint16_t where);
 void hardware_hwq(uint16_t where);
 void hardware_step_all(void);

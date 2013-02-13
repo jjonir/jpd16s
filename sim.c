@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/signal.h>
 #include <ncurses.h>
 #include "core.h"
 #include "dcpu16.h"
@@ -14,6 +15,10 @@ static void deinit(void);
 static void dump_state(void);
 static void dump_disassembly(void);
 static int load_bin(const char *filename);
+static void init_signal_handlers(void);
+static void sigint_handler(int sig);
+
+sig_atomic_t run, quit;
 
 int main(int argc, char *argv[])
 {
@@ -35,8 +40,10 @@ int main(int argc, char *argv[])
 
 	attach_hardware_builtin();
 	//attach_hardware_module("./lem1802");
-	//attach_hardware_module("./generic_clock");
-	attach_hardware_module("./sped3");
+	for (i = 0; i < 3; i++) {
+		attach_hardware_module("./generic_clock");
+	}
+	//attach_hardware_module("./sped3");
 	sim_start();
 
 	initscr();
@@ -44,8 +51,11 @@ int main(int argc, char *argv[])
 	if (dbg == 0) {
 		run_dcpu16();
 	} else {
-		int run = 0;
-		while (1) {
+		init_signal_handlers();
+
+		run = 0;
+		quit = 0;
+		while (quit == 0) {
 			int cmd;
 			dump_state();
 			if (run) {
@@ -54,6 +64,7 @@ int main(int argc, char *argv[])
 			} else {
 				cmd = getch();
 				if (cmd == 'Q') {
+					quit = 1;
 				} else if (cmd == 'r') {
 					run = 1;
 				} else {
@@ -69,6 +80,7 @@ int main(int argc, char *argv[])
 
 void deinit(void)
 {
+	hardware_deinit();
 	endwin();
 }
 
@@ -193,4 +205,24 @@ int load_bin(const char *filename)
 	fclose(f);
 
 	return 0;
+}
+
+void init_signal_handlers(void)
+{
+	struct sigaction sa;
+
+	sa.sa_handler = sigint_handler;
+	sa.sa_flags = SA_RESTART;
+	sigemptyset(&sa.sa_mask);
+
+	if (sigaction(SIGINT, &sa, NULL) == -1) {
+		perror("sigaction");
+		exit(1);
+	}
+}
+
+void sigint_handler(int sig)
+{
+	(void)sig;
+	run = 0;
 }

@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/signal.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include "dcpu16.h"
 #include "hardware_host.h"
 #include "lem1802.h"
@@ -26,12 +27,12 @@ void attach_hardware_builtin(void)
 	hardware[where].hw.builtin = lem1802(2, 46); // TODO 1, 1 if not debug?
 	hardware[where].hw.builtin->init();
 
+/*
 	where = attached++;
 	hardware[where].type = HARDWARE_BUILTIN;
 	hardware[where].hw.builtin = generic_clock();
 	hardware[where].hw.builtin->init();
 
-/*
 	where = attached++;
 	hardware[where].type = HARDWARE_BUILTIN;
 	hardware[where].hw.builtin = sped3();
@@ -51,7 +52,7 @@ int attach_hardware_module(const char *name)
 		int logfd;
 
 		strcpy(logname, name);
-		strcat(logname, "_log");
+		strcat(logname, ".log");
 		logfd = fileno(fopen(logname, "w"));
 
 		close(1);
@@ -76,6 +77,20 @@ int attach_hardware_module(const char *name)
 	}
 
 	return 0;
+}
+
+void hardware_deinit(void)
+{
+	int i;
+	int status;
+
+	for (i = 0; i < attached; i++) {
+		if (hardware[i].type == HARDWARE_MODULE) {
+			kill(hardware[i].hw.module->pid, SIGINT);
+			wait(&status);
+			free(hardware[i].hw.module);
+		}
+	}
 }
 
 void hardware_hwi(uint16_t where)
