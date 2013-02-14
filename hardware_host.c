@@ -20,7 +20,7 @@ static void hardware_step(uint16_t where);
 
 void attach_hardware_builtin(void)
 {
-	uint16_t where;
+	uint16_t where = 0;
 
 	where = attached++;
 	hardware[where].type = HARDWARE_BUILTIN;

@@ -162,8 +162,8 @@ void display(void)
 
 	glLoadIdentity();
 	glRotatef(current_rotation, 0, 1, 0);
-	glRotatef(view_rot_x, 0, 1, 0);
 	glRotatef(view_rot_y, 1, 0, 0);
+	glRotatef(view_rot_x, 0, 1, 0);
 
 	glBegin(GL_LINE_LOOP);
 		for (i = 0; (i < vertex_count) && (i < 128); i++) {

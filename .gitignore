@@ -1,0 +1,8 @@
+*.o
+*.swp
+jpd16s
+generic_clock
+lem1802
+m35fd
+sped3
+*.log

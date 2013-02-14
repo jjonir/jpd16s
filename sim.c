@@ -25,25 +25,28 @@ int main(int argc, char *argv[])
 	int i;
 	int dbg = 0;
 	char corefilename[1024] = "core.bin";
+	char module_name[1024];
+
+	sim_init();
+	attach_hardware_builtin();
 
 	for (i = 1; i < argc; i++) {
 		if ((strcmp(argv[i], "-d") == 0) ||
-			(strcmp(argv[i], "--debug") == 0))
+				(strcmp(argv[i], "--debug") == 0)) {
 			dbg = 1;
-		else
+		} else if ((strcmp(argv[i], "-m") == 0) ||
+				(strcmp(argv[i], "--module") == 0)) {
+			strcpy(module_name, "./");
+			strncat(module_name, argv[++i], 1020);
+			attach_hardware_module(module_name);
+		} else {
 			strncpy(corefilename, argv[i], 1023);
+		}
 	}
 
-	sim_init();
 	if (load_bin(corefilename) != 0)
 		exit(1);
 
-	attach_hardware_builtin();
-	//attach_hardware_module("./lem1802");
-	for (i = 0; i < 3; i++) {
-		attach_hardware_module("./generic_clock");
-	}
-	//attach_hardware_module("./sped3");
 	sim_start();
 
 	initscr();
